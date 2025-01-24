@@ -55,8 +55,6 @@ class InterviewView(APIView):
         slot1_end = datetime.datetime.fromtimestamp(slot1_end)
         slot2_start = datetime.datetime.fromtimestamp(slot2_start)
         slot2_end = datetime.datetime.fromtimestamp(slot2_end)
-
-        # Calculate overlap
         overlap_start = max(slot1_start, slot2_start)
         overlap_end = min(slot1_end, slot2_end)
 
