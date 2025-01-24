@@ -17,21 +17,32 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
+            user_id =''
             validated_data = serializer.validated_data
 
-            validated_data['user_type_id'] = str(random.randint(10000000, 99999999))
+            if validated_data['user_type'] == 1:
+                validated_data['interviewer_id'] = str(random.randint(10000000, 99999999))
+                user_id = validated_data['interviewer_id']
+            elif validated_data['user_type'] == 2:
+                validated_data['candidate_id'] = str(random.randint(10000000, 99999999))
+                user_id = validated_data['candidate_id']
+
             validated_data['email'] = validated_data['username']
 
             user = TblUsers.objects.create(**validated_data)
-            return Response({"message": "User registered successfully!", "user_id": user.user_type_id}, status=status.HTTP_201_CREATED)
+            return Response({"message": "User registered successfully!", "user_id": user_id}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class InterviewView(APIView):
     def post(self, request):
-        user_id = request.data.get('user_id')
-        user = TblUsers.objects.filter(user_type_id=user_id).first()
-        if user:
-            response = {'Name':user.username, 'start_date': datetime.datetime.fromtimestamp(user.start_date), 'end_date': datetime.datetime.fromtimestamp(user.end_date)}
+        interviewer_id = request.data.get('interviewer_id')
+        candidate_id = request.data.get('candidate_id')
+        interviewer = TblUsers.objects.filter(interviewer_id=interviewer_id).first()
+        candidate = TblUsers.objects.filter(candidate_id=candidate_id).first()
+        if interviewer and candidate:
+            min_duration = 1
+            times = self.find_common_timeslots(interviewer.start_date, interviewer.end_date, candidate.start_date, candidate.end_date, min_duration)
+            response = {'candidate_Name':candidate.first_name+' '+candidate.last_name, 'Interviewer_Name':interviewer.first_name+' '+interviewer.last_name, 'available_timeslots': times}
             return Response(response, status=status.HTTP_200_OK)
         return Response(
             {"error": "User with the given ID does not exist."},
@@ -39,4 +50,27 @@ class InterviewView(APIView):
         )
 
 
+    def find_common_timeslots(self, slot1_start, slot1_end, slot2_start, slot2_end, min_duration):
+        slot1_start = datetime.datetime.fromtimestamp(slot1_start)
+        slot1_end = datetime.datetime.fromtimestamp(slot1_end)
+        slot2_start = datetime.datetime.fromtimestamp(slot2_start)
+        slot2_end = datetime.datetime.fromtimestamp(slot2_end)
+
+        # Calculate overlap
+        overlap_start = max(slot1_start, slot2_start)
+        overlap_end = min(slot1_end, slot2_end)
+
+        min_duration_td = datetime.timedelta(hours=min_duration)
+        if overlap_end - overlap_start < min_duration_td:
+            return []
+
+        timeslots = []
+        current_time = overlap_start
+        while current_time + min_duration_td <= overlap_end:
+            next_time = current_time + min_duration_td
+            timeslots.append(
+                f"{current_time.strftime('%Y-%m-%d %I:%M %p')} - {next_time.strftime('%Y-%m-%d %I:%M %p')}")
+            current_time = next_time
+
+        return timeslots
 
