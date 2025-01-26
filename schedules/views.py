@@ -2,7 +2,7 @@ import datetime
 import random
 import uuid
 
-from django.shortcuts import render
+from django.shortcuts import render,HttpResponse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,6 +13,8 @@ from schedules.serializers import UserSerializer
 
 # Create your views here.
 
+def index(request):
+    return HttpResponse("Successfully Running")
 class RegisterView(APIView):
     def post(self, request):
         serializer = UserSerializer(data=request.data)
@@ -50,15 +52,13 @@ class InterviewView(APIView):
         )
 
 
-    def find_common_timeslots(self, slot1_start, slot1_end, slot2_start, slot2_end, min_duration):
-        slot1_start = datetime.datetime.fromtimestamp(slot1_start)
-        slot1_end = datetime.datetime.fromtimestamp(slot1_end)
-        slot2_start = datetime.datetime.fromtimestamp(slot2_start)
-        slot2_end = datetime.datetime.fromtimestamp(slot2_end)
-
-        # Calculate overlap
-        overlap_start = max(slot1_start, slot2_start)
-        overlap_end = min(slot1_end, slot2_end)
+    def find_common_timeslots(self, time1_start, time1_end, time2_start, time2_end, min_duration):
+        time1_start = datetime.datetime.fromtimestamp(time1_start)
+        time1_end = datetime.datetime.fromtimestamp(time1_end)
+        time2_start = datetime.datetime.fromtimestamp(time2_start)
+        time2_end = datetime.datetime.fromtimestamp(time2_end)
+        overlap_start = max(time1_start, time2_start)
+        overlap_end = min(time1_end, time2_end)
 
         min_duration_td = datetime.timedelta(hours=min_duration)
         if overlap_end - overlap_start < min_duration_td:
